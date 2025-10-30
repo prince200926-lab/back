@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Student - {{ student.name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .navbar-left h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+        
+        .btn-back {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-back:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            animation: slideDown 0.5s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .student-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .student-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .student-avatar {
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.2);
+            border: 4px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            margin: 0 auto 20px;
+        }
+        
+        .student-header h2 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .class-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+        
+        .student-body {
+            padding: 40px;
+        }
+        
+        .info-section {
+            margin-bottom: 35px;
+        }
+        
+        .info-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .section-content {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 1.05em;
+            line-height: 1.7;
+            color: #333;
+            min-height: 60px;
+        }
+        
+        .empty-content {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .metadata-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .metadata-label {
+            font-size: 0.85em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .metadata-value {
+            font-size: 1.05em;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-edit {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+        }
+        
+        .btn-edit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 193, 7, 0.4);
+        }
+        
+        .btn-delete {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .delete-form {
+            display: inline;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .student-header {
+                padding: 30px 20px;
+            }
+            
+            .student-header h2 {
+                font-size: 2em;
+            }
+            
+            .student-body {
+                padding: 25px 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .metadata {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <h1>📋 Student Details</h1>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn-back">
+            ⬅️ Back to Dashboard
+        </a>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="student-card">
+            <div class="student-header">
+                <div class="student-avatar">👤</div>
+                <h2>{{ student.name }}</h2>
+                <span class="class-badge">{{ student.className }} - {{ student.sectionName }}</span>
+            </div>
+            
+            <div class="student-body">
+                <div class="info-section">
+                    <div class="section-title">
+                        🏥 Special Needs
+                    </div>
+                    <div class="section-content">
+                        {% if student.specialNeeds and student.specialNeeds.strip() %}
+                            {{ student.specialNeeds }}
+                        {% else %}
+                            <span class="empty-content">No special needs recorded</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="section-title">
+                        📊 Progress Notes
+                    </div>
+                    <div class="section-content">
+                        {% if student.progress and student.progress.strip() %}
+                            {{ student.progress }}
+                        {% else %}
+                            <span class="empty-content">No progress notes available</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="section-title">
+                        🛠️ Accommodations
+                    </div>
+                    <div class="section-content">
+                        {% if student.accommodations and student.accommodations.strip() %}
+                            {{ student.accommodations }}
+                        {% else %}
+                            <span class="empty-content">No accommodations specified</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="section-title">
+                        📝 Additional Notes
+                    </div>
+                    <div class="section-content">
+                        {% if student.notes and student.notes.strip() %}
+                            {{ student.notes }}
+                        {% else %}
+                            <span class="empty-content">No additional notes</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="metadata">
+                    {% if student.createdAt %}
+                    <div class="metadata-item">
+                        <div class="metadata-label">Created</div>
+                        <div class="metadata-value" id="createdDate">Loading...</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if student.lastUpdated %}
+                    <div class="metadata-item">
+                        <div class="metadata-label">Last Updated</div>
+                        <div class="metadata-value" id="updatedDate">Loading...</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{{ url_for('edit_student', class_name=student.className, section=student.sectionName, student_key=student.key) }}" class="btn btn-edit">
+                        ✏️ Edit Student
+                    </a>
+                    
+                    <form method="POST" action="{{ url_for('delete_student', class_name=student.className, section=student.sectionName, student_key=student.key) }}" class="delete-form" onsubmit="return confirm('⚠️ Are you sure you want to delete {{ student.name }}?\n\nThis action cannot be undone and will permanently remove all student data.');">
+                        <button type="submit" class="btn btn-delete">
+                            🗑️ Delete Student
+                        </button>
+                    </form>
+                    
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                        ↩️ Return to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Format timestamps
+        function formatDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Update dates on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const createdAt = {{ student.createdAt | default(0) }};
+            const updatedAt = {{ student.lastUpdated | default(0) }};
+            
+            const createdEl = document.getElementById('createdDate');
+            const updatedEl = document.getElementById('updatedDate');
+            
+            if (createdEl && createdAt) {
+                createdEl.textContent = formatDate(createdAt);
+            }
+            
+            if (updatedEl && updatedAt) {
+                updatedEl.textContent = formatDate(updatedAt);
+            }
+            
+            // Auto-dismiss alerts
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>

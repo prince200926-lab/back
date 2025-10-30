@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if mode == 'add' %}Add New Student{% else %}Edit Student{% endif %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .navbar-left h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+        
+        .btn-back {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-back:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            animation: slideDown 0.5s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .form-header {
+            background: white;
+            padding: 35px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-bottom: none;
+        }
+        
+        .form-header h2 {
+            font-size: 2.2em;
+            color: #333;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .form-header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .form-container {
+            background: white;
+            padding: 40px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-top: none;
+        }
+        
+        .form-grid {
+            display: grid;
+            gap: 25px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .required {
+            color: #dc3545;
+            font-size: 1.2em;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .form-group small {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .class-section-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .char-counter {
+            text-align: right;
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .btn-submit {
+            flex: 1;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-cancel {
+            flex: 1;
+            padding: 15px 30px;
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-cancel:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .info-box p {
+            color: #1565c0;
+            margin: 0;
+            font-size: 0.95em;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .class-section-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .form-container {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <h1>{% if mode == 'add' %}➕ Add New Student{% else %}✏️ Edit Student{% endif %}</h1>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn-back">
+            ⬅️ Back to Dashboard
+        </a>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="form-header">
+            <h2>{% if mode == 'add' %}Add New Student{% else %}Edit Student Information{% endif %}</h2>
+            <p>{% if mode == 'add' %}Fill in the student's information below{% else %}Update the student's information{% endif %}</p>
+        </div>
+        
+        <div class="form-container">
+            {% if role == 'counselor' and mode == 'add' %}
+            <div class="info-box">
+                <p>💡 <strong>Counselor Access:</strong> You can add students to any class and section. Please select the target class and section below.</p>
+            </div>
+            {% endif %}
+            
+            <form method="POST" id="studentForm">
+                <div class="form-grid">
+                    <!-- Class and Section Selection (Only for Counselors adding new students) -->
+                    {% if role == 'counselor' and mode == 'add' %}
+                    <div class="class-section-grid">
+                        <div class="form-group">
+                            <label for="class">Class <span class="required">*</span></label>
+                            <input 
+                                type="text" 
+                                id="class" 
+                                name="class" 
+                                placeholder="e.g., 10th, 11th, 12th"
+                                required
+                            >
+                            <small>Enter the class name</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="section">Section <span class="required">*</span></label>
+                            <input 
+                                type="text" 
+                                id="section" 
+                                name="section" 
+                                placeholder="e.g., A, B, C"
+                                required
+                            >
+                            <small>Enter the section name</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Student Name -->
+                    <div class="form-group">
+                        <label for="name">Student Name <span class="required">*</span></label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            placeholder="Enter full name"
+                            value="{{ student.name if student else '' }}"
+                            maxlength="100"
+                            required
+                            onkeyup="updateCharCount('name', 100)"
+                        >
+                        <div class="char-counter" id="name-counter">0 / 100 characters</div>
+                    </div>
+                    
+                    <!-- Special Needs -->
+                    <div class="form-group">
+                        <label for="specialNeeds">Special Needs</label>
+                        <textarea 
+                            id="specialNeeds" 
+                            name="specialNeeds" 
+                            placeholder="Describe any special needs or learning disabilities..."
+                            maxlength="500"
+                            onkeyup="updateCharCount('specialNeeds', 500)"
+                        >{{ student.specialNeeds if student else '' }}</textarea>
+                        <div class="char-counter" id="specialNeeds-counter">0 / 500 characters</div>
+                    </div>
+                    
+                    <!-- Accommodations -->
+                    <div class="form-group">
+                        <label for="accommodations">Accommodations</label>
+                        <textarea 
+                            id="accommodations" 
+                            name="accommodations" 
+                            placeholder="List any required accommodations (extra time, assistive technology, etc.)..."
+                            maxlength="1000"
+                            onkeyup="updateCharCount('accommodations', 1000)"
+                        >{{ student.accommodations if student else '' }}</textarea>
+                        <div class="char-counter" id="accommodations-counter">0 / 1000 characters</div>
+                    </div>
+                    
+                    <!-- Progress -->
+                    <div class="form-group">
+                        <label for="progress">Progress Notes</label>
+                        <textarea 
+                            id="progress" 
+                            name="progress" 
+                            placeholder="Track student's progress, achievements, and areas for improvement..."
+                            maxlength="1000"
+                            onkeyup="updateCharCount('progress', 1000)"
+                        >{{ student.progress if student else '' }}</textarea>
+                        <div class="char-counter" id="progress-counter">0 / 1000 characters</div>
+                    </div>
+                    
+                    <!-- Additional Notes -->
+                    <div class="form-group">
+                        <label for="notes">Additional Notes</label>
+                        <textarea 
+                            id="notes" 
+                            name="notes" 
+                            placeholder="Any other relevant information about the student..."
+                            maxlength="2000"
+                            onkeyup="updateCharCount('notes', 2000)"
+                        >{{ student.notes if student else '' }}</textarea>
+                        <div class="char-counter" id="notes-counter">0 / 2000 characters</div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">
+                        {% if mode == 'add' %}
+                            ✅ Add Student
+                        {% else %}
+                            💾 Save Changes
+                        {% endif %}
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" class="btn-cancel">
+                        ❌ Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Character counter function
+        function updateCharCount(fieldId, maxLength) {
+            const field = document.getElementById(fieldId);
+            const counter = document.getElementById(fieldId + '-counter');
+            const currentLength = field.value.length;
+            counter.textContent = `${currentLength} / ${maxLength} characters`;
+            
+            // Change color if near limit
+            if (currentLength > maxLength * 0.9) {
+                counter.style.color = '#dc3545';
+            } else if (currentLength > maxLength * 0.7) {
+                counter.style.color = '#ffc107';
+            } else {
+                counter.style.color = '#999';
+            }
+        }
+        
+        // Initialize character counters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCount('name', 100);
+            updateCharCount('specialNeeds', 500);
+            updateCharCount('accommodations', 1000);
+            updateCharCount('progress', 1000);
+            updateCharCount('notes', 2000);
+            
+            // Auto-dismiss alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                }, 5000);
+            });
+            
+            // Form validation
+            const form = document.getElementById('studentForm');
+            form.addEventListener('submit', function(e) {
+                const name = document.getElementById('name').value.trim();
+                
+                if (!name) {
+                    e.preventDefault();
+                    alert('Please enter the student\'s name');
+                    document.getElementById('name').focus();
+                    return false;
+                }
+                
+                // Additional validation for counselors adding students
+                {% if role == 'counselor' and mode == 'add' %}
+                const classField = document.getElementById('class').value.trim();
+                const sectionField = document.getElementById('section').value.trim();
+                
+                if (!classField || !sectionField) {
+                    e.preventDefault();
+                    alert('Please specify both class and section');
+                    return false;
+                }
+                {% endif %}
+                
+                // Show loading state
+                const submitBtn = form.querySelector('.btn-submit');
+                submitBtn.innerHTML = '⏳ Processing...';
+                submitBtn.disabled = true;
+            });
+        });
+    </script>
+</body>
+</html>

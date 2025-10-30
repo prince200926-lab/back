@@ -38,7 +38,7 @@ if not firebase_admin._apps:
         logger.error(f"❌ Firebase initialization failed: {e}")
         raise
 
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # 3️⃣ FLASK APP SETUP
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
@@ -536,21 +536,33 @@ def view_student(class_name, section, student_key):
             return redirect(url_for("dashboard"))
     
     try:
-        student_data = db.reference(f"Classes/{class_name}/{section}/{student_key}").get()
+        # Log the path for debugging
+        path = f"Classes/{class_name}/{section}/{student_key}"
+        logger.info(f"Attempting to fetch student from path: {path}")
+        
+        student_data = db.reference(path).get()
         
         if not student_data:
+            logger.error(f"Student not found at path: {path}")
             flash("Student not found", "danger")
+            return redirect(url_for("dashboard"))
+        
+        # Ensure student_data is a dictionary
+        if not isinstance(student_data, dict):
+            logger.error(f"Invalid student data type: {type(student_data)}")
+            flash("Invalid student data", "danger")
             return redirect(url_for("dashboard"))
         
         student_data["key"] = student_key
         student_data["className"] = class_name
         student_data["sectionName"] = section
         
+        logger.info(f"Successfully loaded student: {student_data.get('name', 'Unknown')}")
         return render_template("view_student.html", student=student_data, role=role)
     
     except Exception as e:
-        logger.error(f"Error viewing student: {e}")
-        flash("Error loading student data", "danger")
+        logger.error(f"Error viewing student: {e}", exc_info=True)
+        flash(f"Error loading student data: {str(e)}", "danger")
         return redirect(url_for("dashboard"))
 
 # ---------------------------------------------------------------------------
