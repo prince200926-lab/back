@@ -1,4 +1,0 @@
-app.secret_key = os.urandom(24)  # new secret each restart
-app.config.pop("SESSION_TYPE", None)  # use default in-browser cookie sessions
-
-reset connection on restart
