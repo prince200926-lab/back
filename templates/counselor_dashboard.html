@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Counselor Dashboard</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Counselor Dashboard</h1>
+    <h2>Counselor name : {{ Username }} </h2>
+
+    {% for class_name, sections in all_students.items() %}
+        <h2>Class: {{ class_name }}</h2>
+        {% for section_name, students in sections.items() %}
+            <h3>Section: {{ section_name }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Special Needs</th>
+                        <th>Progress</th>
+                        <th>Accommodations</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student_key, student in students.items() %}
+                    <tr>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.specialNeeds }}</td>
+                        <td>{{ student.progress }}</td>
+                        <td>{{ student.accommodations }}</td>
+                        <td>{{ student.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% endfor %}
+</body>
+</html>

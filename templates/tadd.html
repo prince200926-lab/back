@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Student</title>
+    <style>
+        .success { color: green; }
+        .danger { color: red; }
+    </style>
+</head>
+<body>
+<h2>Register New Student</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul>
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="POST">
+    <label>Assigned Class (only for teacher):</label><br>
+    <input type="text" name="assignedClass"><br><br>
+
+    <label>Assigned Section (only for teacher):</label><br>
+    
+<input type="text" name="assignedSection"><br><br>
+    <label>Username:</label><br>
+    <input type="Username" name="Username" required><br><br>
+  
+    <label>Email:</label><br>
+    <input type="email" name="email" required><br><br>
+
+    <label>Password:</label><br>
+    <input type="password" name="password" required><br><br>
+
+    <label>Role:</label><br>
+    <select name="role" required>
+        <option value="teacher">Teacher</option>
+        <option value="counselor">Counselor</option>
+    </select><br><br>
+
+    <button type="submit">Register</button>
+</form>
+</body>
+</html>
