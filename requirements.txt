@@ -2,5 +2,8 @@ Flask==2.3.2
 firebase-admin==6.1.0
 requests==2.31.0
 python-dotenv==1.0.0
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 749cf580158b953af0f2118a810c94b23356aed9
