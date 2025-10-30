@@ -1,0 +1,5 @@
+[[redirects]]
+    from = "/*"
+    to= "https://project-main-vbi6.onrender.com"
+    status = 200
+    force = true
