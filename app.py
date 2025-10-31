@@ -45,10 +45,16 @@ if not firebase_admin._apps:
 app = Flask(__name__)
 CORS(app, origins=["https://eattend.netlify.app/"])
 app.secret_key = SECRET_KEY
+app.wsgi_app = ProxyFix(app.wsgi_app,x_proto=1, x_host=1)
+
+
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_SECURE'] = True  # Use True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+def remove_https_redirect():
+    if request.url.startswith("http://"):
+        pass
 
 # ---------------------------------------------------------------------------
 # 4️⃣ FIREBASE HELPERS
