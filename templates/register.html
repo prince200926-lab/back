@@ -1,0 +1,630 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration - Student Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .registration-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            animation: slideUp 0.5s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.05em;
+        }
+        
+        .form-container {
+            padding: 40px 30px;
+        }
+        
+        .alert {
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            animation: slideDown 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        
+        .required {
+            color: #dc3545;
+            margin-left: 3px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+        
+        .conditional-fields {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .conditional-fields.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .conditional-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+            display: block;
+            font-style: italic;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        
+        .password-requirements {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+            display: flex;
+            align-items: start;
+            gap: 5px;
+        }
+        
+        .password-requirements::before {
+            content: "ℹ️";
+            flex-shrink: 0;
+        }
+        
+        .input-icon {
+            position: relative;
+        }
+        
+        .input-icon::before {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+            opacity: 0.5;
+        }
+        
+        .input-icon input {
+            padding-left: 40px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .input-hint {
+            font-size: 0.85em;
+            margin-top: 5px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .input-hint.new {
+            display: block;
+            background: #fff3cd;
+            color: #856404;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .input-hint.existing {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border-left: 3px solid #28a745;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin-top: 15px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        .info-icon {
+            flex-shrink: 0;
+            font-size: 1.2em;
+        }
+        
+        @media (max-width: 600px) {
+            .registration-container {
+                margin: 0;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .form-container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-container">
+        <div class="header">
+            <h1>
+                <span>👥</span>
+                User Registration
+            </h1>
+            <p>Register new teachers and counselors</p>
+        </div>
+        
+        <div class="form-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{% if category == 'success' %}✅{% else %}⚠️{% endif %}</span>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" id="registrationForm">
+                <div class="form-group">
+                    <label for="name">
+                        Full Name<span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        placeholder="Enter full name"
+                        required
+                        maxlength="100"
+                        autocomplete="name"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">
+                        Email Address<span class="required">*</span>
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="example@school.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">
+                        Password<span class="required">*</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter secure password"
+                        required
+                        minlength="6"
+                        autocomplete="new-password"
+                    >
+                    <div class="password-requirements">
+                        Must be at least 6 characters long
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">
+                        Role<span class="required">*</span>
+                    </label>
+                    <select id="role" name="role" required onchange="toggleConditionalFields()">
+                        <option value="">Select a role...</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="counselor">Counselor</option>
+                    </select>
+                </div>
+                
+                <div id="teacherFields" class="conditional-fields">
+                    <span class="conditional-label">
+                        📚 These fields are required for teachers
+                    </span>
+                    
+                    <div class="form-group">
+                        <label for="assignedClass">
+                            Assigned Class<span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="assignedClass" 
+                            name="assignedClass" 
+                            placeholder="e.g., Grade 10, Class 5A"
+                            list="classList"
+                            oninput="checkNewClass()"
+                        >
+                        <datalist id="classList">
+                            {% for class_name in existing_classes.keys() %}
+                                <option value="{{ class_name }}">
+                            {% endfor %}
+                        </datalist>
+                        <div class="input-hint" id="classHint"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="assignedSection">
+                            Assigned Section<span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="assignedSection" 
+                            name="assignedSection" 
+                            placeholder="e.g., Section A, Morning Batch"
+                            list="sectionList"
+                            oninput="checkNewSection()"
+                        >
+                        <datalist id="sectionList">
+                        </datalist>
+                        <div class="input-hint" id="sectionHint"></div>
+                    </div>
+                    
+                    <div class="info-box" id="creationInfo" style="display: none;">
+                        <span class="info-icon">ℹ️</span>
+                        <span id="creationMessage"></span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-submit">
+                    <span>✨</span>
+                    <span>Register User</span>
+                </button>
+            </form>
+        </div>
+        
+        <div class="footer">
+            Student Management System © 2025
+        </div>
+    </div>
+    
+    <script>
+        // Store existing classes data
+        const existingClasses = {{ existing_classes|tojson|safe }};
+        
+        function toggleConditionalFields() {
+            const role = document.getElementById('role').value;
+            const teacherFields = document.getElementById('teacherFields');
+            const classInput = document.getElementById('assignedClass');
+            const sectionInput = document.getElementById('assignedSection');
+            
+            if (role === 'teacher') {
+                teacherFields.classList.add('show');
+                classInput.required = true;
+                sectionInput.required = true;
+            } else {
+                teacherFields.classList.remove('show');
+                classInput.required = false;
+                sectionInput.required = false;
+                classInput.value = '';
+                sectionInput.value = '';
+                resetHints();
+            }
+        }
+        
+        function normalizeInput(text) {
+            // Normalize input for comparison (capitalize words)
+            return text.trim().split(/\s+/).map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
+        }
+        
+        function checkNewClass() {
+            const classInput = document.getElementById('assignedClass');
+            const classHint = document.getElementById('classHint');
+            const sectionInput = document.getElementById('assignedSection');
+            const sectionList = document.getElementById('sectionList');
+            
+            const className = normalizeInput(classInput.value);
+            
+            if (className) {
+                const exists = existingClasses.hasOwnProperty(className);
+                
+                if (exists) {
+                    classHint.className = 'input-hint existing';
+                    classHint.textContent = '✅ This class already exists';
+                    
+                    // Populate section datalist
+                    sectionList.innerHTML = '';
+                    const sections = Object.keys(existingClasses[className]);
+                    sections.forEach(section => {
+                        if (section !== '_info') {
+                            const option = document.createElement('option');
+                            option.value = section;
+                            sectionList.appendChild(option);
+                        }
+                    });
+                } else {
+                    classHint.className = 'input-hint new';
+                    classHint.textContent = '✨ New class will be created';
+                    sectionList.innerHTML = '';
+                }
+                
+                // Clear section validation when class changes
+                sectionInput.value = '';
+                checkNewSection();
+            } else {
+                classHint.style.display = 'none';
+                sectionList.innerHTML = '';
+            }
+            
+            updateCreationInfo();
+        }
+        
+        function checkNewSection() {
+            const classInput = document.getElementById('assignedClass');
+            const sectionInput = document.getElementById('assignedSection');
+            const sectionHint = document.getElementById('sectionHint');
+            
+            const className = normalizeInput(classInput.value);
+            const sectionName = normalizeInput(sectionInput.value);
+            
+            if (sectionName && className) {
+                const classExists = existingClasses.hasOwnProperty(className);
+                
+                if (classExists) {
+                    const sections = Object.keys(existingClasses[className]);
+                    const sectionExists = sections.includes(sectionName);
+                    
+                    if (sectionExists) {
+                        sectionHint.className = 'input-hint existing';
+                        sectionHint.textContent = '✅ This section already exists';
+                    } else {
+                        sectionHint.className = 'input-hint new';
+                        sectionHint.textContent = '✨ New section will be created';
+                    }
+                } else {
+                    sectionHint.className = 'input-hint new';
+                    sectionHint.textContent = '✨ New section will be created';
+                }
+            } else {
+                sectionHint.style.display = 'none';
+            }
+            
+            updateCreationInfo();
+        }
+        
+        function updateCreationInfo() {
+            const classInput = document.getElementById('assignedClass');
+            const sectionInput = document.getElementById('assignedSection');
+            const creationInfo = document.getElementById('creationInfo');
+            const creationMessage = document.getElementById('creationMessage');
+            
+            const className = normalizeInput(classInput.value);
+            const sectionName = normalizeInput(sectionInput.value);
+            
+            if (!className || !sectionName) {
+                creationInfo.style.display = 'none';
+                return;
+            }
+            
+            const classExists = existingClasses.hasOwnProperty(className);
+            const sectionExists = classExists && Object.keys(existingClasses[className]).includes(sectionName);
+            
+            if (!classExists && !sectionExists) {
+                creationInfo.style.display = 'flex';
+                creationMessage.textContent = `A new class "${className}" with section "${sectionName}" will be created automatically when you register this teacher.`;
+            } else if (classExists && !sectionExists) {
+                creationInfo.style.display = 'flex';
+                creationMessage.textContent = `A new section "${sectionName}" will be added to the existing class "${className}".`;
+            } else {
+                creationInfo.style.display = 'none';
+            }
+        }
+        
+        function resetHints() {
+            document.getElementById('classHint').style.display = 'none';
+            document.getElementById('sectionHint').style.display = 'none';
+            document.getElementById('creationInfo').style.display = 'none';
+        }
+        
+        // Auto-dismiss success alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const successAlerts = document.querySelectorAll('.alert-success');
+            successAlerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                }, 5000);
+            });
+            
+            // Form validation
+            const form = document.getElementById('registrationForm');
+            form.addEventListener('submit', function(e) {
+                const role = document.getElementById('role').value;
+                const assignedClass = document.getElementById('assignedClass').value.trim();
+                const assignedSection = document.getElementById('assignedSection').value.trim();
+                
+                if (role === 'teacher') {
+                    if (!assignedClass || !assignedSection) {
+                        e.preventDefault();
+                        alert('⚠️ Teachers must have both an assigned class and section!');
+                        return false;
+                    }
+                }
+            });
+            
+            // Password strength indicator
+            const passwordInput = document.getElementById('password');
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                const requirements = document.querySelector('.password-requirements');
+                
+                if (password.length >= 6) {
+                    requirements.style.color = '#28a745';
+                    requirements.innerHTML = '✅ Password meets requirements';
+                } else if (password.length > 0) {
+                    requirements.style.color = '#dc3545';
+                    requirements.innerHTML = '⚠️ Password is too short (minimum 6 characters)';
+                } else {
+                    requirements.style.color = '#666';
+                    requirements.innerHTML = 'ℹ️ Must be at least 6 characters long';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
