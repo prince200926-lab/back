@@ -782,7 +782,7 @@ def server_error(e):
 # 🔟 RUN SERVER
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 10000))
     debug = os.getenv("FLASK_ENV") == "development"
     
     logger.info(f"🚀 Starting Flask app on port {port}")
