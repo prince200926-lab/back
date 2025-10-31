@@ -296,6 +296,29 @@
                 padding: 30px 20px;
             }
         }
+
+
+                
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .login-link a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -432,6 +455,11 @@
                     <span>Register User</span>
                 </button>
             </form>
+
+            <div class="login-link">
+                Registered? head to <a href="{{ url_for('login') }}">Login page</a>
+            </div>
+
         </div>
         
         <div class="footer">
