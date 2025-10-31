@@ -6,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime, timedelta
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # ---------------------------------------------------------------------------
 # 1️⃣ LOAD ENVIRONMENT & LOGGING
@@ -43,6 +44,9 @@ if not firebase_admin._apps:
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+app.wsgi_app = ProxyFix(app.wsgi_app,x_proto=1, x_host=1)
+
+
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_SECURE'] = True  # Use True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
