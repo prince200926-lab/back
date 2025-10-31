@@ -552,7 +552,7 @@
         {% else %}
             <div class="table-container">
                 <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-icon">🔭</div>
                     <h3>No Students Found</h3>
                     <p>There are currently no students in the system. Click the button below to add your first student.</p>
                     <a href="{{ url_for('add_student') }}" class="btn-add">
@@ -565,23 +565,49 @@
     
     <script>
         function filterTable() {
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const classFilter = document.getElementById('classFilter').value.toLowerCase();
-            const sectionFilter = document.getElementById('sectionFilter').value.toLowerCase();
+            const searchInput = document.getElementById('searchInput').value.toLowerCase().trim();
+            const classFilter = document.getElementById('classFilter').value.trim();
+            const sectionFilter = document.getElementById('sectionFilter').value.trim();
             const table = document.getElementById('studentsTable');
+            
+            // Check if table exists
+            if (!table) return;
+            
             const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            
             const rows = tbody.getElementsByTagName('tr');
             
             let visibleCount = 0;
             
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
-                const name = row.cells[0].textContent.toLowerCase();
-                const classSection = row.cells[1].textContent.toLowerCase();
+                const cells = row.cells;
                 
-                const matchesSearch = name.includes(searchInput) || classSection.includes(searchInput);
-                const matchesClass = classFilter === '' || classSection.includes(classFilter);
-                const matchesSection = sectionFilter === '' || classSection.includes(sectionFilter);
+                if (cells.length < 6) continue; // Skip if row doesn't have enough cells
+                
+                const name = cells[0].textContent.toLowerCase();
+                const classSection = cells[1].textContent.trim();
+                const specialNeeds = cells[2].textContent.toLowerCase();
+                const accommodations = cells[3].textContent.toLowerCase();
+                
+                // Extract class and section from the badge text (format: "Class - Section")
+                const classSectionParts = classSection.split(' - ');
+                const studentClass = classSectionParts[0] ? classSectionParts[0].trim() : '';
+                const studentSection = classSectionParts[1] ? classSectionParts[1].trim() : '';
+                
+                // Search matches name, class, section, special needs, or accommodations
+                const matchesSearch = searchInput === '' || 
+                    name.includes(searchInput) || 
+                    classSection.toLowerCase().includes(searchInput) ||
+                    specialNeeds.includes(searchInput) ||
+                    accommodations.includes(searchInput);
+                
+                // Class filter matches exact class name
+                const matchesClass = classFilter === '' || studentClass === classFilter;
+                
+                // Section filter matches exact section name
+                const matchesSection = sectionFilter === '' || studentSection === sectionFilter;
                 
                 if (matchesSearch && matchesClass && matchesSection) {
                     row.style.display = '';
@@ -592,7 +618,10 @@
             }
             
             // Update filtered count
-            document.getElementById('filteredCount').textContent = visibleCount;
+            const filteredCountElement = document.getElementById('filteredCount');
+            if (filteredCountElement) {
+                filteredCountElement.textContent = visibleCount;
+            }
         }
         
         // Auto-dismiss alerts after 5 seconds

@@ -308,8 +308,13 @@ def counselor_dashboard():
         
         # Restructure data for easier rendering
         structured_data = []
+        classes_set = set()
+        sections_set = set()
+        
         for class_name, sections in all_classes.items():
+            classes_set.add(class_name)
             for section_name, students in sections.items():
+                sections_set.add(section_name)
                 for key, student_data in students.items():
                     student_data["key"] = key
                     student_data["className"] = class_name
@@ -323,9 +328,15 @@ def counselor_dashboard():
             x.get("name", "").lower()
         ))
         
+        # Convert sets to sorted lists for template
+        classes_list = sorted(list(classes_set))
+        sections_list = sorted(list(sections_set))
+        
         return render_template(
             "counselor_dashboard.html",
             all_students=structured_data,
+            classes=classes_list,
+            sections=sections_list,
             username=session.get("username")
         )
     except Exception as e:
@@ -334,6 +345,8 @@ def counselor_dashboard():
         return render_template(
             "counselor_dashboard.html",
             all_students=[],
+            classes=[],
+            sections=[],
             username=session.get("username")
         )
 
