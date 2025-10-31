@@ -19,6 +19,7 @@ FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 FIREBASE_DB_URL = os.getenv("FIREBASE_DB_URL")
 SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "serviceAccountKey.json")
 SECRET_KEY = os.getenv("SECRET_KEY")
+JWT_SECRET= os.urandom(32)
 
 if not FIREBASE_API_KEY or not FIREBASE_DB_URL:
     raise RuntimeError("Set FIREBASE_API_KEY and FIREBASE_DB_URL in .env")
@@ -45,9 +46,6 @@ if not firebase_admin._apps:
 app = Flask(__name__)
 CORS(app, origins=["https://eattend.netlify.app/"])
 app.secret_key = SECRET_KEY
-app.wsgi_app = ProxyFix(app.wsgi_app,x_proto=1, x_host=1)
-
-
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_SECURE'] = True  # Use True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
