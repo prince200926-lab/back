@@ -6,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 # ---------------------------------------------------------------------------
 # 1️⃣ LOAD ENVIRONMENT & LOGGING
@@ -42,6 +43,7 @@ if not firebase_admin._apps:
 # 3️⃣ FLASK APP SETUP
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
+CORS(app, origins=["https://eattend.netlify.app/"])
 app.secret_key = SECRET_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_SECURE'] = True  # Use True in production with HTTPS
@@ -249,322 +251,477 @@ def logout():
 # ---------------------------------------------------------------------------
 # 7️⃣ DASHBOARDS
 # ---------------------------------------------------------------------------
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    role = session.get("role")
-    
-    if role == "teacher":
-        return redirect(url_for("teacher_dashboard"))
-    elif role == "counselor":
-        return redirect(url_for("counselor_dashboard"))
-    else:
-        flash("Unknown role. Please contact administrator.", "danger")
-        return redirect(url_for("login"))
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from functools import wraps
+import jwt
+from datetime import datetime, timedelta
 
-@app.route("/teacher")
-@login_required
-@role_required("teacher")
-def teacher_dashboard():
-    assigned_class = session.get("assignedClass")
-    assigned_section = session.get("assignedSection")
-    
-    try:
-        students = db.reference(f"Classes/{assigned_class}/{assigned_section}").get() or {}
-        
-        # Convert to list for easier template rendering
-        student_list = []
-        for key, data in students.items():
-            data["key"] = key
-            student_list.append(data)
-        
-        # Sort by name
-        student_list.sort(key=lambda x: x.get("name", "").lower())
-        
-        return render_template(
-            "teacher_dashboard.html",
-            students=student_list,
-            class_name=assigned_class,
-            section_name=assigned_section,
-            username=session.get("username")
-        )
-    except Exception as e:
-        logger.error(f"Error loading teacher dashboard: {e}")
-        flash("Error loading student data", "danger")
-        return render_template(
-            "teacher_dashboard.html",
-            students=[],
-            class_name=assigned_class,
-            section_name=assigned_section,
-            username=session.get("username")
-        )
+# Enable CORS
+app = Flask(__name__)
+CORS(app, 
+     origins=[
+         "https://eattend.netlify.app/",  # Replace with your Netlify URL
+         "http://localhost:3000",  # For local development
+         "http://localhost:5000"
+     ],
+     supports_credentials=True)
 
-@app.route("/counselor")
-@login_required
-@role_required("counselor")
-def counselor_dashboard():
-    try:
-        all_classes = db.reference("Classes").get() or {}
-        
-        # Restructure data for easier rendering
-        structured_data = []
-        classes_set = set()
-        sections_set = set()
-        
-        for class_name, sections in all_classes.items():
-            classes_set.add(class_name)
-            for section_name, students in sections.items():
-                sections_set.add(section_name)
-                for key, student_data in students.items():
-                    student_data["key"] = key
-                    student_data["className"] = class_name
-                    student_data["sectionName"] = section_name
-                    structured_data.append(student_data)
-        
-        # Sort by class, section, then name
-        structured_data.sort(key=lambda x: (
-            x.get("className", ""),
-            x.get("sectionName", ""),
-            x.get("name", "").lower()
-        ))
-        
-        # Convert sets to sorted lists for template
-        classes_list = sorted(list(classes_set))
-        sections_list = sorted(list(sections_set))
-        
-        return render_template(
-            "counselor_dashboard.html",
-            all_students=structured_data,
-            classes=classes_list,
-            sections=sections_list,
-            username=session.get("username")
-        )
-    except Exception as e:
-        logger.error(f"Error loading counselor dashboard: {e}")
-        flash("Error loading student data", "danger")
-        return render_template(
-            "counselor_dashboard.html",
-            all_students=[],
-            classes=[],
-            sections=[],
-            username=session.get("username")
-        )
+# JWT Configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-this")
+JWT_EXPIRATION = 12  # hours
 
 # ---------------------------------------------------------------------------
-# 8️⃣ STUDENT MANAGEMENT (ADD / EDIT / DELETE)
+# JWT Helper Functions
 # ---------------------------------------------------------------------------
-@app.route("/add_student", methods=["GET", "POST"])
-@login_required
-def add_student():
-    if request.method == "POST":
-        # Determine target class/section
-        if session.get("role") == "teacher":
-            target_class = session.get("assignedClass")
-            target_section = session.get("assignedSection")
+def create_token(uid, role, username, email, assigned_class="", assigned_section=""):
+    """Create JWT token"""
+    payload = {
+        "uid": uid,
+        "role": role,
+        "username": username,
+        "email": email,
+        "assignedClass": assigned_class,
+        "assignedSection": assigned_section,
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION),
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+def verify_token(token):
+    """Verify and decode JWT token"""
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+def token_required(f):
+    """Decorator to require valid JWT token"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        
+        if not token:
+            return jsonify({"success": False, "message": "Token is missing"}), 401
+        
+        if token.startswith('Bearer '):
+            token = token[7:]
+        
+        data = verify_token(token)
+        if not data:
+            return jsonify({"success": False, "message": "Token is invalid or expired"}), 401
+        
+        # Add user data to request context
+        request.user = data
+        return f(*args, **kwargs)
+    
+    return decorated
+
+def role_required(*allowed_roles):
+    """Decorator to check user role"""
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if not hasattr(request, 'user'):
+                return jsonify({"success": False, "message": "Unauthorized"}), 401
+            
+            user_role = request.user.get('role')
+            if user_role not in allowed_roles:
+                return jsonify({"success": False, "message": "Insufficient permissions"}), 403
+            
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+# ---------------------------------------------------------------------------
+# API ROUTES
+# ---------------------------------------------------------------------------
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    """Login endpoint - returns JWT token"""
+    try:
+        data = request.get_json()
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
+
+        if not email or not password:
+            return jsonify({
+                "success": False,
+                "message": "Please enter both email and password"
+            }), 400
+
+        # Authenticate with Firebase
+        res = firebase_sign_in(email, password)
+        if "error" in res:
+            return jsonify({
+                "success": False,
+                "message": f"Login failed: {res['error']}"
+            }), 401
+
+        uid = res["localId"]
+        
+        # Fetch user metadata
+        meta = get_user_metadata(uid)
+        if not meta:
+            return jsonify({
+                "success": False,
+                "message": "User metadata not found"
+            }), 404
+
+        role = normalize_role(meta.get("role", ""))
+        if role not in ["teacher", "counselor"]:
+            return jsonify({
+                "success": False,
+                "message": "Invalid user role"
+            }), 403
+
+        # Create JWT token
+        token = create_token(
+            uid=uid,
+            role=role,
+            username=meta.get("name", email.split("@")[0]),
+            email=email,
+            assigned_class=meta.get("assignedClass", ""),
+            assigned_section=meta.get("assignedSection", "")
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "token": token,
+            "role": role,
+            "username": meta.get("name", email.split("@")[0]),
+            "assignedClass": meta.get("assignedClass", ""),
+            "assignedSection": meta.get("assignedSection", "")
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Login error: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "message": "An error occurred during login"
+        }), 500
+
+@app.route("/api/dashboard", methods=["GET"])
+@token_required
+def api_dashboard():
+    """Get dashboard data based on user role"""
+    try:
+        user = request.user
+        role = user.get("role")
+        
+        if role == "teacher":
+            assigned_class = user.get("assignedClass")
+            assigned_section = user.get("assignedSection")
+            
+            students = db.reference(f"Classes/{assigned_class}/{assigned_section}").get() or {}
+            
+            student_list = []
+            for key, data in students.items():
+                if key != "_info" and isinstance(data, dict):
+                    data["key"] = key
+                    student_list.append(data)
+            
+            student_list.sort(key=lambda x: x.get("name", "").lower())
+            
+            return jsonify({
+                "success": True,
+                "role": "teacher",
+                "students": student_list,
+                "className": assigned_class,
+                "sectionName": assigned_section,
+                "username": user.get("username")
+            }), 200
+            
+        elif role == "counselor":
+            all_classes = db.reference("Classes").get() or {}
+            
+            structured_data = []
+            classes_set = set()
+            sections_set = set()
+            
+            for class_name, sections in all_classes.items():
+                if not isinstance(sections, dict):
+                    continue
+                    
+                classes_set.add(class_name)
+                for section_name, students in sections.items():
+                    if not isinstance(students, dict):
+                        continue
+                        
+                    sections_set.add(section_name)
+                    for key, student_data in students.items():
+                        if key == "_info" or not isinstance(student_data, dict):
+                            continue
+                        
+                        student_data["key"] = key
+                        student_data["className"] = class_name
+                        student_data["sectionName"] = section_name
+                        structured_data.append(student_data)
+            
+            structured_data.sort(key=lambda x: (
+                x.get("className", ""),
+                x.get("sectionName", ""),
+                x.get("name", "").lower()
+            ))
+            
+            return jsonify({
+                "success": True,
+                "role": "counselor",
+                "students": structured_data,
+                "classes": sorted(list(classes_set)),
+                "sections": sorted(list(sections_set)),
+                "username": user.get("username")
+            }), 200
+        
         else:
-            target_class = request.form.get("class", "").strip()
-            target_section = request.form.get("section", "").strip()
+            return jsonify({
+                "success": False,
+                "message": "Invalid role"
+            }), 403
             
-            if not target_class or not target_section:
-                flash("Please specify class and section", "warning")
-                return redirect(url_for("add_student"))
+    except Exception as e:
+        logger.error(f"Dashboard error: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "message": "Error loading dashboard data"
+        }), 500
 
-        # Get form data
-        form_data = {
-            "name": request.form.get("name", "").strip(),
-            "specialNeeds": request.form.get("specialNeeds", "").strip(),
-            "progress": request.form.get("progress", "").strip(),
-            "accommodations": request.form.get("accommodations", "").strip(),
-            "notes": request.form.get("notes", "").strip()
-        }
-        
-        # Validate
-        errors = validate_student_data(form_data)
-        if errors:
-            for error in errors:
-                flash(error, "danger")
-            return redirect(url_for("add_student"))
-        
-        # Generate key and save
-        key = student_key_from_name(form_data["name"])
-        payload = {
-            **form_data,
-            "createdBy": session.get("uid"),
-            "createdAt": int(time.time() * 1000),
-            "lastUpdated": int(time.time() * 1000),
-            "lastUpdatedBy": session.get("uid")
-        }
-        
-        try:
-            # Check if student already exists
-            existing = db.reference(f"Classes/{target_class}/{target_section}/{key}").get()
-            if existing:
-                flash(f"Student '{form_data['name']}' already exists in {target_class}/{target_section}", "warning")
-                return redirect(url_for("add_student"))
-            
-            db.reference(f"Classes/{target_class}/{target_section}/{key}").set(payload)
-            flash(f"✅ Student '{form_data['name']}' added successfully!", "success")
-            logger.info(f"Student added: {key} in {target_class}/{target_section}")
-            return redirect(url_for("dashboard"))
-        except Exception as e:
-            logger.error(f"Error adding student: {e}")
-            flash("Error adding student. Please try again.", "danger")
-            return redirect(url_for("add_student"))
-
-    return render_template(
-        "add_edit_student.html",
-        mode="add",
-        role=session.get("role"),
-        student=None
-    )
-
-@app.route("/edit_student/<class_name>/<section>/<student_key>", methods=["GET", "POST"])
-@login_required
-def edit_student(class_name, section, student_key):
-    # Check permissions
-    role = session.get("role")
-    if role == "teacher":
-        if class_name != session.get("assignedClass") or section != session.get("assignedSection"):
-            flash("You can only edit students in your assigned class", "danger")
-            return redirect(url_for("dashboard"))
-    
+@app.route("/api/students/<class_name>/<section>/<student_key>", methods=["GET"])
+@token_required
+def api_get_student(class_name, section, student_key):
+    """Get single student details"""
     try:
-        student_ref = db.reference(f"Classes/{class_name}/{section}/{student_key}")
-        student_data = student_ref.get()
+        user = request.user
+        role = user.get("role")
         
-        if not student_data:
-            flash("Student not found", "danger")
-            return redirect(url_for("dashboard"))
+        # Check permissions for teachers
+        if role == "teacher":
+            if class_name != user.get("assignedClass") or section != user.get("assignedSection"):
+                return jsonify({
+                    "success": False,
+                    "message": "You can only view students in your assigned class"
+                }), 403
         
-        if request.method == "POST":
-            # Get form data
-            form_data = {
-                "name": request.form.get("name", "").strip(),
-                "specialNeeds": request.form.get("specialNeeds", "").strip(),
-                "progress": request.form.get("progress", "").strip(),
-                "accommodations": request.form.get("accommodations", "").strip(),
-                "notes": request.form.get("notes", "").strip()
-            }
-            
-            # Validate
-            errors = validate_student_data(form_data)
-            if errors:
-                for error in errors:
-                    flash(error, "danger")
-                return redirect(url_for("edit_student", class_name=class_name, section=section, student_key=student_key))
-            
-            # Check if name changed (key might change)
-            new_key = student_key_from_name(form_data["name"])
-            
-            # Update payload
-            payload = {
-                **form_data,
-                "createdBy": student_data.get("createdBy"),
-                "createdAt": student_data.get("createdAt"),
-                "lastUpdated": int(time.time() * 1000),
-                "lastUpdatedBy": session.get("uid")
-            }
-            
-            if new_key != student_key:
-                # Name changed - move to new key
-                db.reference(f"Classes/{class_name}/{section}/{new_key}").set(payload)
-                db.reference(f"Classes/{class_name}/{section}/{student_key}").delete()
-                flash(f"✅ Student '{form_data['name']}' updated successfully!", "success")
-            else:
-                # Same key - just update
-                student_ref.update(payload)
-                flash(f"✅ Student updated successfully!", "success")
-            
-            logger.info(f"Student edited: {student_key} -> {new_key}")
-            return redirect(url_for("dashboard"))
+        student_data = db.reference(f"Classes/{class_name}/{section}/{student_key}").get()
         
-        # GET request - show form
+        if not student_data or not isinstance(student_data, dict):
+            return jsonify({
+                "success": False,
+                "message": "Student not found"
+            }), 404
+        
         student_data["key"] = student_key
         student_data["className"] = class_name
         student_data["sectionName"] = section
         
-        return render_template(
-            "add_edit_student.html",
-            mode="edit",
-            role=role,
-            student=student_data
-        )
-    
+        return jsonify({
+            "success": True,
+            "student": student_data
+        }), 200
+        
     except Exception as e:
-        logger.error(f"Error editing student: {e}")
-        flash("Error loading student data", "danger")
-        return redirect(url_for("dashboard"))
+        logger.error(f"Get student error: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "message": "Error loading student data"
+        }), 500
 
-@app.route("/delete_student/<class_name>/<section>/<student_key>", methods=["POST"])
-@login_required
-def delete_student(class_name, section, student_key):
-    # Check permissions
-    role = session.get("role")
-    if role == "teacher":
-        if class_name != session.get("assignedClass") or section != session.get("assignedSection"):
-            flash("You can only delete students in your assigned class", "danger")
-            return redirect(url_for("dashboard"))
-    
+@app.route("/api/students/add", methods=["POST"])
+@token_required
+def api_add_student():
+    """Add new student"""
     try:
+        user = request.user
+        role = user.get("role")
+        data = request.get_json()
+        
+        # Determine target class/section
+        if role == "teacher":
+            target_class = user.get("assignedClass")
+            target_section = user.get("assignedSection")
+        else:
+            target_class = data.get("class", "").strip()
+            target_section = data.get("section", "").strip()
+            
+            if not target_class or not target_section:
+                return jsonify({
+                    "success": False,
+                    "message": "Please specify class and section"
+                }), 400
+
+        # Validate student data
+        form_data = {
+            "name": data.get("name", "").strip(),
+            "specialNeeds": data.get("specialNeeds", "").strip(),
+            "progress": data.get("progress", "").strip(),
+            "accommodations": data.get("accommodations", "").strip(),
+            "notes": data.get("notes", "").strip()
+        }
+        
+        errors = validate_student_data(form_data)
+        if errors:
+            return jsonify({
+                "success": False,
+                "message": "; ".join(errors)
+            }), 400
+        
+        # Generate key and save
+        key = student_key_from_name(form_data["name"])
+        
+        # Check if student already exists
+        existing = db.reference(f"Classes/{target_class}/{target_section}/{key}").get()
+        if existing:
+            return jsonify({
+                "success": False,
+                "message": f"Student '{form_data['name']}' already exists"
+            }), 409
+        
+        payload = {
+            **form_data,
+            "createdBy": user.get("uid"),
+            "createdAt": int(time.time() * 1000),
+            "lastUpdated": int(time.time() * 1000),
+            "lastUpdatedBy": user.get("uid")
+        }
+        
+        db.reference(f"Classes/{target_class}/{target_section}/{key}").set(payload)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Student '{form_data['name']}' added successfully",
+            "studentKey": key
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Add student error: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "message": "Error adding student"
+        }), 500
+
+@app.route("/api/students/<class_name>/<section>/<student_key>", methods=["PUT"])
+@token_required
+def api_update_student(class_name, section, student_key):
+    """Update student"""
+    try:
+        user = request.user
+        role = user.get("role")
+        
+        # Check permissions for teachers
+        if role == "teacher":
+            if class_name != user.get("assignedClass") or section != user.get("assignedSection"):
+                return jsonify({
+                    "success": False,
+                    "message": "You can only edit students in your assigned class"
+                }), 403
+        
         student_ref = db.reference(f"Classes/{class_name}/{section}/{student_key}")
         student_data = student_ref.get()
         
         if not student_data:
-            flash("Student not found", "danger")
-            return redirect(url_for("dashboard"))
+            return jsonify({
+                "success": False,
+                "message": "Student not found"
+            }), 404
+        
+        data = request.get_json()
+        
+        form_data = {
+            "name": data.get("name", "").strip(),
+            "specialNeeds": data.get("specialNeeds", "").strip(),
+            "progress": data.get("progress", "").strip(),
+            "accommodations": data.get("accommodations", "").strip(),
+            "notes": data.get("notes", "").strip()
+        }
+        
+        errors = validate_student_data(form_data)
+        if errors:
+            return jsonify({
+                "success": False,
+                "message": "; ".join(errors)
+            }), 400
+        
+        new_key = student_key_from_name(form_data["name"])
+        
+        payload = {
+            **form_data,
+            "createdBy": student_data.get("createdBy"),
+            "createdAt": student_data.get("createdAt"),
+            "lastUpdated": int(time.time() * 1000),
+            "lastUpdatedBy": user.get("uid")
+        }
+        
+        if new_key != student_key:
+            db.reference(f"Classes/{class_name}/{section}/{new_key}").set(payload)
+            db.reference(f"Classes/{class_name}/{section}/{student_key}").delete()
+        else:
+            student_ref.update(payload)
+        
+        return jsonify({
+            "success": True,
+            "message": "Student updated successfully",
+            "newKey": new_key
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Update student error: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "message": "Error updating student"
+        }), 500
+
+@app.route("/api/students/<class_name>/<section>/<student_key>", methods=["DELETE"])
+@token_required
+def api_delete_student(class_name, section, student_key):
+    """Delete student"""
+    try:
+        user = request.user
+        role = user.get("role")
+        
+        # Check permissions for teachers
+        if role == "teacher":
+            if class_name != user.get("assignedClass") or section != user.get("assignedSection"):
+                return jsonify({
+                    "success": False,
+                    "message": "You can only delete students in your assigned class"
+                }), 403
+        
+        student_ref = db.reference(f"Classes/{class_name}/{section}/{student_key}")
+        student_data = student_ref.get()
+        
+        if not student_data:
+            return jsonify({
+                "success": False,
+                "message": "Student not found"
+            }), 404
         
         student_name = student_data.get("name", "Unknown")
         student_ref.delete()
         
-        flash(f"✅ Student '{student_name}' deleted successfully", "success")
-        logger.info(f"Student deleted: {student_key} from {class_name}/{section}")
+        return jsonify({
+            "success": True,
+            "message": f"Student '{student_name}' deleted successfully"
+        }), 200
         
     except Exception as e:
-        logger.error(f"Error deleting student: {e}")
-        flash("Error deleting student", "danger")
-    
-    return redirect(url_for("dashboard"))
+        logger.error(f"Delete student error: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "message": "Error deleting student"
+        }), 500
 
-@app.route("/view_student/<class_name>/<section>/<student_key>")
-@login_required
-def view_student(class_name, section, student_key):
-    # Check permissions
-    role = session.get("role")
-    if role == "teacher":
-        if class_name != session.get("assignedClass") or section != session.get("assignedSection"):
-            flash("You can only view students in your assigned class", "danger")
-            return redirect(url_for("dashboard"))
-    
-    try:
-        # Log the path for debugging
-        path = f"Classes/{class_name}/{section}/{student_key}"
-        logger.info(f"Attempting to fetch student from path: {path}")
-        
-        student_data = db.reference(path).get()
-        
-        if not student_data:
-            logger.error(f"Student not found at path: {path}")
-            flash("Student not found", "danger")
-            return redirect(url_for("dashboard"))
-        
-        # Ensure student_data is a dictionary
-        if not isinstance(student_data, dict):
-            logger.error(f"Invalid student data type: {type(student_data)}")
-            flash("Invalid student data", "danger")
-            return redirect(url_for("dashboard"))
-        
-        student_data["key"] = student_key
-        student_data["className"] = class_name
-        student_data["sectionName"] = section
-        
-        logger.info(f"Successfully loaded student: {student_data.get('name', 'Unknown')}")
-        return render_template("view_student.html", student=student_data, role=role)
-    
-    except Exception as e:
-        logger.error(f"Error viewing student: {e}", exc_info=True)
-        flash(f"Error loading student data: {str(e)}", "danger")
-        return redirect(url_for("dashboard"))
-
+# Health check endpoint
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    """Health check endpoint for monitoring"""
+    return jsonify({
+        "status": "healthy",
+        "timestamp": int(time.time())
+    }), 200
 # ---------------------------------------------------------------------------
 # 9️⃣ ERROR HANDLERS
 # ---------------------------------------------------------------------------
