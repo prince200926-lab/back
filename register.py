@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 FIREBASE_DB_URL = os.getenv("FIREBASE_DB_URL")
 SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "Key.json")
-SECRET_KEY = os.getenv("FLASK_SECRET", os.urandom(24))
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 if not FIREBASE_API_KEY or not FIREBASE_DB_URL:
     raise RuntimeError("Set FIREBASE_API_KEY and FIREBASE_DB_URL in .env")
@@ -34,6 +34,10 @@ if not firebase_admin._apps:
 # Flask app
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
+app.config['SESSION_COOKIE_SECURE'] = True  # Use True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # ---------------------------------------------------------------------------
 # HELPER FUNCTIONS
