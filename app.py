@@ -47,6 +47,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_SECURE'] = True  # Use True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+def remove_https_redirect():
+    if request.url.startswith("http://"):
+        pass
 
 # ---------------------------------------------------------------------------
 # 4️⃣ FIREBASE HELPERS
